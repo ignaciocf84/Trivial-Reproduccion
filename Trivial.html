@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trivial PDI Interactivo - La Reproducción Humana</title>
+    
+    <!-- LIBRERÍAS CDN REQUERIDAS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 40%, #fef3c7 100%);
+            min-height: 100vh;
+            color: #0f172a;
+        }
+
+        h1, h2, h3, h4, .font-heading {
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(16px);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08);
+        }
+
+        .glass-card-interactive {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card-interactive:hover {
+            transform: translateY(-4px) scale(1.01);
+            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.12);
+        }
+
+        .progress-bar-fill {
+            transition: width 0.1s linear, background-color 0.3s ease;
+        }
+
+        .btn-touch {
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+
+        .btn-touch:active {
+            transform: scale(0.96);
+        }
+
+        @keyframes pulse-subtle {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .auto-status-pulse {
+            animation: pulse-subtle 1.2s infinite;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen select-none antialiased">
+
+    <!-- PANTALLA INICIAL: BIENVENIDA Y REGISTRO -->
+    <div id="viewWelcome" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
+        <div class="glass-card max-w-lg w-full p-6 md:p-8 rounded-3xl border-2 border-indigo-200 shadow-2xl space-y-6">
+            <div class="text-center space-y-3">
+                <div class="w-20 h-20 mx-auto rounded-3xl bg-indigo-600 text-white flex items-center justify-center text-4xl shadow-lg">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <h1 class="text-3xl md:text-4xl font-extrabold text-indigo-950">¡Bienvenido al Trivial!</h1>
+                <p class="text-base md:text-lg text-slate-600 font-semibold">La Reproducción Humana y Etapas de la Vida</p>
+            </div>
+
+            <form onsubmit="handleStartGame(event)" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-extrabold text-slate-700 uppercase tracking-wider mb-2">
+                        <i class="fa-solid fa-user text-indigo-600"></i> Nombre del Alumno:
+                    </label>
+                    <input type="text" id="inputStudentName" required value="" placeholder="Escribe tu nombre aquí..." 
+                           class="w-full px-5 py-4 rounded-2xl border-2 border-indigo-200 text-slate-900 text-xl font-extrabold focus:border-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-100 transition shadow-sm">
+                </div>
+
+                <button type="submit" class="btn-touch w-full py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xl shadow-lg flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-play"></i> Comenzar Trivial
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- CABECERA PRINCIPAL CON ESTADÍSTICAS GLOBALES -->
+    <header class="w-full glass-card sticky top-0 z-40 px-4 py-3 border-b border-slate-200">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-xl shadow-md">
+                    <i class="fa-solid fa-dna"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-extrabold text-indigo-950">TRIVIAL PDI</h1>
+                    <p id="displayStudentName" class="text-xs md:text-sm font-bold text-indigo-600">Alumno: --</p>
+                </div>
+            </div>
+
+            <!-- RECUENTO GLOBAL DE ACIERTOS, FALLOS Y PUNTOS -->
+            <div class="flex items-center gap-3 flex-wrap justify-center">
+                <div class="flex items-center gap-4 bg-white/90 px-5 py-2 rounded-2xl border border-slate-200 shadow-sm">
+                    <span class="text-emerald-600 font-black text-base md:text-lg flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-check"></i> <span id="headerCorrect">0</span>
+                    </span>
+                    <span class="text-rose-600 font-black text-base md:text-lg flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-xmark"></i> <span id="headerIncorrect">0</span>
+                    </span>
+                    <span class="text-indigo-950 font-black text-base md:text-lg border-l pl-4 border-slate-300">
+                        Pts: <span id="headerScore">0</span>
+                    </span>
+                </div>
+
+                <button onclick="switchView('grid')" class="btn-touch px-4 py-2 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-bold text-sm md:text-base border border-indigo-300">
+                    <i class="fa-solid fa-grid-2"></i> Panel
+                </button>
+                <button onclick="startNewGame()" class="btn-touch px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm md:text-base shadow flex items-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> Reiniciar
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <main class="flex-grow w-full max-w-7xl mx-auto px-4 py-6">
+
+        <!-- VISTA 1: PANEL GENERAL DE PREGUNTAS (GRID DE 20 TARJETAS) -->
+        <div id="viewGrid" class="space-y-6">
+            <div class="glass-card p-6 rounded-3xl border border-indigo-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900">Panel General de Preguntas</h2>
+                    <p class="text-base text-slate-600 font-semibold">Selecciona cualquier tarjeta. El tiempo se inicia a los 3 segundos de aparecer la pregunta.</p>
+                </div>
+                <div class="flex items-center gap-3 bg-indigo-50 px-4 py-2 rounded-2xl border border-indigo-200">
+                    <i class="fa-solid fa-list-check text-indigo-600 text-xl"></i>
+                    <span id="completedCounter" class="text-base md:text-lg font-extrabold text-indigo-950">0 / 20 Respondidas</span>
+                </div>
+            </div>
+
+            <!-- REJILLA DE 20 TARJETAS -->
+            <div id="questionsGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4"></div>
+        </div>
+
+        <!-- VISTA 2: PREGUNTA ACTIVA EN PDI -->
+        <div id="viewActiveQuestion" class="hidden space-y-6">
+            <div class="flex items-center justify-between gap-4">
+                <button onclick="switchView('grid')" class="btn-touch px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-left"></i> Volver al Panel
+                </button>
+                <div class="flex items-center gap-2">
+                    <span id="activeCategoryBadge" class="px-4 py-1.5 rounded-full text-xs md:text-sm font-extrabold uppercase border shadow-sm"></span>
+                    <span id="activeQuestionNumber" class="px-4 py-1.5 rounded-full bg-indigo-900 text-white text-xs md:text-sm font-extrabold"></span>
+                </div>
+            </div>
+
+            <div class="glass-card p-6 md:p-8 rounded-3xl border-2 border-indigo-200 shadow-xl space-y-6">
+                <!-- TEXTO DE LA PREGUNTA -->
+                <div class="bg-indigo-950 text-white p-6 md:p-8 rounded-2xl shadow-inner">
+                    <h2 id="activeQuestionText" class="text-2xl md:text-3xl lg:text-4xl font-extrabold leading-snug text-center"></h2>
+                </div>
+
+                <!-- OPCIONES A Y B -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6" id="optionsContainer"></div>
+
+                <!-- CONTROLES DEL TEMPORIZADOR DE 10 SEGUNDOS CON INICIO RETARDADO EN 3s -->
+                <div class="bg-slate-50 p-4 md:p-6 rounded-2xl border border-slate-200 space-y-3">
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl bg-amber-500 text-white flex items-center justify-center text-2xl shadow">
+                                <i class="fa-solid fa-stopwatch"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs font-bold text-slate-500 uppercase block">Temporizador PDI</span>
+                                <span id="timerText" class="text-3xl font-black text-slate-900">10s</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 w-full sm:w-auto">
+                            <span id="timerStatusNotice" class="text-xs font-black px-4 py-2 bg-amber-100 text-amber-900 rounded-xl border border-amber-300 auto-status-pulse flex items-center gap-1.5">
+                                <i class="fa-solid fa-hourglass-start"></i> Iniciando en 3s...
+                            </span>
+                            <button id="btnStartTimer" onclick="toggleTimer()" class="btn-touch flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm md:text-base font-bold shadow flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-play"></i> <span id="lblStartTimer">Iniciar</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- BARRA DE PROGRESO -->
+                    <div class="w-full bg-slate-200 h-4 rounded-full overflow-hidden">
+                        <div id="timerProgressBar" class="progress-bar-fill h-full bg-emerald-500 w-full"></div>
+                    </div>
+                </div>
+
+                <!-- PANEL DE EXPLICACIÓN Y AVISO DE AVANCE AUTOMÁTICO -->
+                <div id="explanationPanel" class="hidden p-6 rounded-2xl border-2 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2 text-xl font-extrabold text-indigo-950">
+                            <i class="fa-solid fa-lightbulb text-amber-500"></i> Explicación Didáctica
+                        </div>
+                        <span id="autoAdvanceBadge" class="text-xs font-black px-3 py-1 bg-indigo-600 text-white rounded-full auto-status-pulse flex items-center gap-1.5">
+                            <i class="fa-solid fa-forward"></i> Pasando en 2s...
+                        </span>
+                    </div>
+                    <p id="explanationText" class="text-lg md:text-xl font-bold leading-relaxed text-slate-800"></p>
+                </div>
+
+                <!-- NAVEGACIÓN MANUAL -->
+                <div class="flex items-center justify-between pt-4 border-t border-slate-200">
+                    <button onclick="navigateQuestion(-1)" class="btn-touch px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-base flex items-center gap-2">
+                        <i class="fa-solid fa-chevron-left"></i> Anterior
+                    </button>
+                    <button onclick="navigateQuestion(1)" class="btn-touch px-5 py-2.5 rounded-xl bg-indigo-900 hover:bg-indigo-950 text-white font-bold text-base flex items-center gap-2">
+                        Siguiente <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL FINAL DE RESULTADOS Y ENVÍO AUTOMÁTICO A GOOGLE SHEETS -->
+    <div id="finalModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-card max-w-xl w-full p-6 md:p-8 rounded-3xl border-2 border-emerald-300 space-y-6 shadow-2xl relative overflow-hidden">
+            <div class="text-center space-y-2">
+                <div class="inline-flex p-4 bg-emerald-100 text-emerald-600 rounded-full text-4xl shadow-inner">
+                    <i class="fa-solid fa-award"></i>
+                </div>
+                <h2 class="text-3xl md:text-4xl font-extrabold text-slate-900">¡Cuestionario Completado!</h2>
+                <p id="modalStudentName" class="text-xl text-indigo-900 font-extrabold">Alumno: --</p>
+            </div>
+
+            <!-- ESTADÍSTICAS FINALES -->
+            <div class="grid grid-cols-3 gap-3 text-center">
+                <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-200">
+                    <span class="text-xs font-bold text-emerald-700 block uppercase">Aciertos</span>
+                    <span id="modalCorrect" class="text-3xl font-black text-emerald-600">0</span>
+                </div>
+                <div class="bg-rose-50 p-4 rounded-2xl border border-rose-200">
+                    <span class="text-xs font-bold text-rose-700 block uppercase">Fallos</span>
+                    <span id="modalIncorrect" class="text-3xl font-black text-rose-600">0</span>
+                </div>
+                <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-200">
+                    <span class="text-xs font-bold text-indigo-700 block uppercase">Precisión</span>
+                    <span id="modalAccuracy" class="text-3xl font-black text-indigo-600">0%</span>
+                </div>
+            </div>
+
+            <!-- ESTADO DEL ENVÍO AUTOMÁTICO -->
+            <div id="sheetsStatus" class="p-4 rounded-2xl border text-center text-sm font-bold bg-indigo-50 border-indigo-200 text-indigo-700">
+                <i class="fa-solid fa-spinner fa-spin"></i> Guardando resultados automáticamente en Google Sheets...
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="location.reload()" class="btn-touch flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-lg rounded-xl shadow flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> Volver a Jugar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT DE LÓGICA Y AUDIO SINTETIZADO -->
+    <script>
+        const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxg8tHNt26P4Wm-7UxF7s3noLadcnghPJEA2JSDRnSZXrIK8gd6AQO7R3AXKnbyp6NG/exec";
+
+        const QUESTION_BANK = [
+            { id: 1, category: "Etapas y Reproducción", question: "¿En qué consiste la función de reproducción?", options: [{ text: "En tener descendientes que se parecen a sus progenitores para conseguir la perpetuación de la especie.", correct: true }, { text: "En tener descendientes idénticos a sus progenitores para conseguir la perpetuación de la especie.", correct: false }], explanation: "La reproducción en los seres humanos permite obtener descendientes semejantes (que se parecen, pero no son idénticos) para perpetuar la especie." },
+            { id: 2, category: "Caracteres Sexuales", question: "¿Por qué órganos se diferencian únicamente los niños y las niñas al nacer?", options: [{ text: "Por sus caracteres sexuales secundarios.", correct: false }, { text: "Por sus órganos reproductores.", correct: true }], explanation: "Al nacer, los niños y las niñas solo se diferencian a simple vista por sus órganos reproductores (caracteres sexuales primarios)." },
+            { id: 3, category: "Etapas y Reproducción", question: "¿Cuáles son las seis etapas vitales del desarrollo de una persona?", options: [{ text: "Infancia, niñez, adolescencia, juventud, madurez y vejez.", correct: true }, { text: "Infancia, postinfancia, adolescencia, juventud, madurez y vejez.", correct: false }], explanation: "Las seis etapas del desarrollo humano son: infancia, niñez, adolescencia, juventud, madurez y vejez." },
+            { id: 4, category: "Etapas y Reproducción", question: "¿Cómo se llama la etapa dentro de la adolescencia en la que empieza a cambiar el cuerpo?", options: [{ text: "Pubertad.", correct: true }, { text: "Postinfancia.", correct: false }], explanation: "La pubertad es la fase inicial de la adolescencia en la que se inician los cambios corporales." },
+            { id: 5, category: "Caracteres Sexuales", question: "¿Qué son los caracteres sexuales primarios?", options: [{ text: "Son los órganos reproductores y ya están formados al nacer.", correct: true }, { text: "Son las diferencias físicas del cuerpo que se forman durante la adolescencia.", correct: false }], explanation: "Son los órganos reproductores ya formados desde el nacimiento." },
+            { id: 6, category: "Caracteres Sexuales", question: "¿Qué son los caracteres sexuales secundarios y cuándo se acentúan?", options: [{ text: "Son las diferencias físicas entre hombres y mujeres que se acentúan durante la adolescencia.", correct: true }, { text: "Son las diferencias físicas entre hombres y mujeres que se acentúan durante la infancia.", correct: false }], explanation: "Son los rasgos físicos que diferencian ambos sexos y se desarrollan plenamente en la adolescencia." },
+            { id: 7, category: "Caracteres Sexuales", question: "¿Cuáles son dos ejemplos de caracteres sexuales secundarios femeninos?", options: [{ text: "Crecimiento de las mamas y ensanchamiento de las caderas.", correct: true }, { text: "Crecimiento de las mamas y ensanchamiento de los hombros.", correct: false }], explanation: "El desarrollo de mamas y caderas son caracteres secundarios femeninos." },
+            { id: 8, category: "Caracteres Sexuales", question: "¿Cuáles son dos ejemplos de caracteres sexuales secundarios masculinos?", options: [{ text: "Aparición de vello en la cara y ensanchamiento de los hombros.", correct: true }, { text: "Aparición de vello en la cara y ensanchamiento de las caderas.", correct: false }], explanation: "Vello facial y hombros anchos son caracteres secundarios masculinos." },
+            { id: 9, category: "Aparato Femenino", question: "¿En qué órganos se forman y maduran los óvulos?", options: [{ text: "En los ovarios.", correct: true }, { text: "En las trompas de Falopio.", correct: false }], explanation: "Los ovarios son las gónadas donde se forman y maduran los óvulos." },
+            { id: 10, category: "Aparato Femenino", question: "¿Qué conductos comunican los ovarios con el útero?", options: [{ text: "Los conductos deferentes.", correct: false }, { text: "Las trompas de Falopio.", correct: true }], explanation: "Las trompas de Falopio comunican ovarios con útero." },
+            { id: 11, category: "Aparato Femenino", question: "¿En qué parte del aparato reproductor femenino se desarrolla el futuro bebé?", options: [{ text: "En el útero.", correct: true }, { text: "En la vagina.", correct: false }], explanation: "El útero acoge y desarrolla al feto durante la gestación." },
+            { id: 12, category: "Aparato Femenino", question: "¿Qué conducto comunica el útero con el exterior?", options: [{ text: "La uretra.", correct: false }, { text: "La vagina.", correct: true }], explanation: "La vagina comunica el útero con la vulva exterior." },
+            { id: 13, category: "Aparato Femenino", question: "¿Qué es la vulva y cuál es su función?", options: [{ text: "Es la parte interna del aparato reproductor que protege la matriz.", correct: false }, { text: "Es la parte externa del aparato reproductor que protege la entrada a la vagina.", correct: true }], explanation: "La vulva conforma la genitalia externa que protege la entrada vaginal." },
+            { id: 14, category: "Aparato Masculino", question: "¿Qué función cumplen los testículos en el aparato reproductor masculino?", options: [{ text: "Producir los espermatozoides.", correct: true }, { text: "Producir únicamente el líquido seminal.", correct: false }], explanation: "Los testículos producen las células sexuales masculinas (espermatozoides)." },
+            { id: 15, category: "Aparato Masculino", question: "¿Cómo se llama el repliegue de piel que cubre los testículos?", options: [{ text: "Escroto.", correct: true }, { text: "Vulva.", correct: false }], explanation: "El escroto es la bolsa de piel exterior que aloja los testículos." },
+            { id: 16, category: "Aparato Masculino", question: "¿Qué glándulas se encargan de producir el líquido seminal?", options: [{ text: "Las vesículas seminales.", correct: true }, { text: "Los testículos.", correct: false }], explanation: "Las vesículas seminales producen el líquido seminal." },
+            { id: 17, category: "Aparato Masculino", question: "¿Por qué conducto salen al exterior tanto los espermatozoides como la orina?", options: [{ text: "Por los conductos deferentes.", correct: false }, { text: "Por la uretra.", correct: true }], explanation: "La uretra masculina realiza la doble función reproductora y excretora." },
+            { id: 18, category: "Aparato Masculino", question: "¿Qué función realizan los conductos deferentes?", options: [{ text: "Producir y almacenar la orina junto con los gametos.", correct: false }, { text: "Recoger los espermatozoides de los testículos y transportarlos a la uretra.", correct: true }], explanation: "Transportan los espermatozoides desde los testículos a la uretra." },
+            { id: 19, category: "Salud e Higiene", question: "¿Cuáles son tres hábitos recomendados para cuidar los aparatos reproductores?", options: [{ text: "Lavarse a diario con jabones adecuados, cambiarse a diario de ropa interior y lavarse las manos antes y después de orinar.", correct: true }, { text: "Lavarse a diario con jabones adecuados, cambiarse a diario de ropa interior y evitar beber agua fría.", correct: false }], explanation: "Higiene corporal diaria, ropa interior limpia y lavado de manos evitan infecciones." },
+            { id: 20, category: "Gametos y Fecundación", question: "¿Qué otro nombre reciben las células sexuales humanas?", options: [{ text: "Cigotos.", correct: false }, { text: "Gametos.", correct: true }], explanation: "Las células reproductoras se denominan gametos." },
+            { id: 21, category: "Gametos y Fecundación", question: "¿Cuáles son las tres partes en las que se distingue un espermatozoide?", options: [{ text: "Cabeza, cuello y cola.", correct: true }, { text: "Cabeza, cuerpo y núcleo.", correct: false }], explanation: "Un espermatozoide se compone de cabeza, cuello y cola." },
+            { id: 22, category: "Gametos y Fecundación", question: "¿A partir de qué etapa de la vida empiezan a madurar los óvulos y a formarse los espermatozoides?", options: [{ text: "A partir de la infancia.", correct: false }, { text: "A partir de la pubertad.", correct: true }], explanation: "La producción de gametos se activa en la pubertad." },
+            { id: 23, category: "Gametos y Fecundación", question: "¿Qué es la menstruación o regla y cada cuánto tiempo ocurre aproximadamente?", options: [{ text: "Es la expulsión por la vagina de un óvulo no fecundado con algo de sangre, cada 28 días aproximadamente.", correct: true }, { text: "Es la expulsión por la vagina de un óvulo fecundado con algo de sangre, cada 14 días aproximadamente.", correct: false }], explanation: "La regla es la expulsión del óvulo no fecundado cada 28 días aprox." },
+            { id: 24, category: "Gametos y Fecundación", question: "¿Qué es la fecundación y qué célula resulta de la unión del óvulo y el espermatozoide?", options: [{ text: "Es la unión de las células sexuales y de ella resulta el embrión.", correct: false }, { text: "Es la unión del óvulo y el espermatozoide y de ella resulta el cigoto.", correct: true }], explanation: "La fecundación une los gametos formando la célula cigoto." },
+            { id: 25, category: "Gametos y Fecundación", question: "¿Cómo evoluciona el cigoto en el útero desde que se divide hasta convertirse en feto?", options: [{ text: "Se divide formando el embrión, viaja al útero, se fija en su pared y crece hasta ser feto.", correct: true }, { text: "Se convierte en feto directamente, viaja al útero y luego se divide formando el embrión.", correct: false }], explanation: "El cigoto da lugar al embrión, se fija en la pared uterina y evoluciona a feto." }
+        ];
+
+        // SINTETIZADOR WEB AUDIO API
+        const SoundEngine = {
+            ctx: null,
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); if (this.ctx.state === 'suspended') this.ctx.resume(); },
+            playClick() { this.init(); const osc = this.ctx.createOscillator(), gain = this.ctx.createGain(); osc.type = 'sine'; osc.frequency.setValueAtTime(600, this.ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(250, this.ctx.currentTime + 0.05); gain.gain.setValueAtTime(0.2, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.05); osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.05); },
+            playTimerStart() { this.init(); const osc = this.ctx.createOscillator(), gain = this.ctx.createGain(); osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(659.25, this.ctx.currentTime + 0.15); gain.gain.setValueAtTime(0.25, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2); osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.2); },
+            playTick() { this.init(); const osc = this.ctx.createOscillator(), gain = this.ctx.createGain(); osc.type = 'sine'; osc.frequency.setValueAtTime(800, this.ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(400, this.ctx.currentTime + 0.04); gain.gain.setValueAtTime(0.3, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.04); osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.04); },
+            playTimeOut() { this.init(); const osc = this.ctx.createOscillator(), gain = this.ctx.createGain(); osc.type = 'sawtooth'; osc.frequency.setValueAtTime(160, this.ctx.currentTime); osc.frequency.linearRampToValueAtTime(90, this.ctx.currentTime + 0.5); gain.gain.setValueAtTime(0.3, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5); osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.5); },
+            playCorrect() { this.init(); [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => { const osc = this.ctx.createOscillator(), gain = this.ctx.createGain(); osc.type = 'triangle'; osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * 0.08); gain.gain.setValueAtTime(0.25, this.ctx.currentTime + i * 0.08); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + i * 0.08 + 0.25); osc.connect(gain); gain.connect(this.ctx.destination); osc.start(this.ctx.currentTime + i * 0.08); osc.stop(this.ctx.currentTime + i * 0.08 + 0.25); }); },
+            playIncorrect() { this.init(); const osc = this.ctx.createOscillator(), gain = this.ctx.createGain(); osc.type = 'sawtooth'; osc.frequency.setValueAtTime(220, this.ctx.currentTime); osc.frequency.linearRampToValueAtTime(110, this.ctx.currentTime + 0.35); gain.gain.setValueAtTime(0.3, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35); osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.35); }
+        };
+
+        // ESTADO GLOBAL
+        let studentName = "";
+        let activeQuestions = [];
+        let currentIndex = 0;
+        let timerInterval = null;
+        let autoTimerStartTimeout = null;
+        let autoAdvanceTimeout = null;
+        let timerSeconds = 10;
+        let isTimerRunning = false;
+
+        const categoryStyles = {
+            "Etapas y Reproducción": "bg-purple-100 text-purple-900 border-purple-300",
+            "Caracteres Sexuales": "bg-pink-100 text-pink-900 border-pink-300",
+            "Aparato Femenino": "bg-rose-100 text-rose-900 border-rose-300",
+            "Aparato Masculino": "bg-sky-100 text-sky-900 border-sky-300",
+            "Salud e Higiene": "bg-teal-100 text-teal-900 border-teal-300",
+            "Gametos y Fecundación": "bg-amber-100 text-amber-900 border-amber-300"
+        };
+
+        function fisherYatesShuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function handleStartGame(e) {
+            e.preventDefault();
+            SoundEngine.playClick();
+            
+            studentName = document.getElementById('inputStudentName').value.trim() || "Alumno";
+            document.getElementById('displayStudentName').innerText = `Alumno: ${studentName}`;
+            document.getElementById('viewWelcome').classList.add('hidden');
+
+            startNewGame();
+        }
+
+        function startNewGame() {
+            clearTimeout(autoTimerStartTimeout);
+            clearTimeout(autoAdvanceTimeout);
+            pauseTimer();
+
+            // Seleccionar 20 preguntas aleatorias de 25
+            const shuffledPool = fisherYatesShuffle(QUESTION_BANK).slice(0, 20);
+
+            // Desordenar opciones A y B con Fisher-Yates
+            activeQuestions = shuffledPool.map((q, idx) => ({
+                gameId: idx + 1,
+                category: q.category,
+                question: q.question,
+                options: fisherYatesShuffle(q.options),
+                explanation: q.explanation,
+                answered: false,
+                isCorrect: false
+            }));
+
+            currentIndex = 0;
+            updateHeaderStats();
+            renderGrid();
+            switchView('grid');
+        }
+
+        function updateHeaderStats() {
+            const correct = activeQuestions.filter(q => q.answered && q.isCorrect).length;
+            const incorrect = activeQuestions.filter(q => q.answered && !q.isCorrect).length;
+            const score = correct * 10;
+
+            document.getElementById('headerCorrect').innerText = correct;
+            document.getElementById('headerIncorrect').innerText = incorrect;
+            document.getElementById('headerScore').innerText = score;
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('questionsGrid');
+            grid.innerHTML = '';
+            let count = 0;
+
+            activeQuestions.forEach((q, idx) => {
+                if (q.answered) count++;
+                const card = document.createElement('div');
+                card.onclick = () => openQuestion(idx);
+                card.className = `glass-card glass-card-interactive p-4 rounded-2xl cursor-pointer border-2 flex flex-col justify-between space-y-3 ${
+                    q.answered ? (q.isCorrect ? 'border-emerald-400 bg-emerald-50/60' : 'border-rose-400 bg-rose-50/60') : 'border-indigo-100'
+                }`;
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="w-8 h-8 rounded-xl bg-indigo-900 text-white font-extrabold flex items-center justify-center text-sm shadow">${q.gameId}</span>
+                        ${q.answered ? (q.isCorrect ? '<i class="fa-solid fa-circle-check text-emerald-500 text-xl"></i>' : '<i class="fa-solid fa-circle-xmark text-rose-500 text-xl"></i>') : '<i class="fa-solid fa-circle-question text-slate-300 text-xl"></i>'}
+                    </div>
+                    <div>
+                        <span class="inline-block px-2.5 py-1 rounded-lg text-xs font-extrabold border mb-1 ${categoryStyles[q.category]}">${q.category}</span>
+                        <p class="text-xs font-bold text-slate-800 line-clamp-2">${q.question}</p>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            document.getElementById('completedCounter').innerText = `${count} / 20 Respondidas`;
+        }
+
+        function openQuestion(idx) {
+            clearTimeout(autoTimerStartTimeout);
+            clearTimeout(autoAdvanceTimeout);
+            SoundEngine.playClick();
+            currentIndex = idx;
+            resetTimer();
+            renderActiveQuestion();
+            switchView('active');
+
+            // INICIO AUTOMÁTICO DEL TEMPORIZADOR A LOS 3 SEGUNDOS DE MOSTRAR LA DIAPOSITIVA
+            const q = activeQuestions[currentIndex];
+            if (!q.answered) {
+                document.getElementById('timerStatusNotice').classList.remove('hidden');
+                autoTimerStartTimeout = setTimeout(() => {
+                    document.getElementById('timerStatusNotice').classList.add('hidden');
+                    startTimer();
+                }, 3000);
+            } else {
+                document.getElementById('timerStatusNotice').classList.add('hidden');
+            }
+        }
+
+        function renderActiveQuestion() {
+            const q = activeQuestions[currentIndex];
+
+            document.getElementById('activeQuestionNumber').innerText = `Pregunta ${q.gameId} de 20`;
+            document.getElementById('activeQuestionText').innerText = q.question;
+
+            const badge = document.getElementById('activeCategoryBadge');
+            badge.innerText = q.category;
+            badge.className = `px-4 py-1.5 rounded-full text-xs md:text-sm font-extrabold uppercase border shadow-sm ${categoryStyles[q.category]}`;
+
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+
+            const optionLabels = ['A', 'B'];
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `btn-touch w-full p-5 rounded-2xl border-2 text-left text-lg md:text-xl font-extrabold shadow flex items-start gap-4 ${
+                    q.answered 
+                        ? (opt.correct ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-rose-100 text-rose-900 border-rose-300 opacity-60')
+                        : 'bg-white text-slate-900 border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50/50'
+                }`;
+                btn.disabled = q.answered;
+                btn.onclick = () => selectOption(opt.correct);
+                btn.innerHTML = `
+                    <span class="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center font-black ${q.answered && opt.correct ? 'bg-white text-emerald-600' : 'bg-indigo-100 text-indigo-900'}">${optionLabels[idx]}</span>
+                    <span class="mt-1 leading-snug">${opt.text}</span>
+                `;
+                optionsContainer.appendChild(btn);
+            });
+
+            const expPanel = document.getElementById('explanationPanel');
+            if (q.answered) {
+                expPanel.classList.remove('hidden');
+                expPanel.className = `p-6 rounded-2xl border-2 space-y-3 ${q.isCorrect ? 'bg-emerald-50 border-emerald-300' : 'bg-rose-50 border-rose-300'}`;
+                document.getElementById('explanationText').innerText = q.explanation;
+            } else {
+                expPanel.classList.add('hidden');
+            }
+        }
+
+        function selectOption(isCorrect) {
+            clearTimeout(autoTimerStartTimeout);
+            document.getElementById('timerStatusNotice').classList.add('hidden');
+            pauseTimer();
+
+            const q = activeQuestions[currentIndex];
+            if (q.answered) return;
+
+            q.answered = true;
+            q.isCorrect = isCorrect;
+
+            if (isCorrect) SoundEngine.playCorrect();
+            else SoundEngine.playIncorrect();
+
+            updateHeaderStats();
+            renderActiveQuestion();
+            renderGrid();
+
+            // AVANCE AUTOMÁTICO TRAS 2 SEGUNDOS
+            autoAdvanceTimeout = setTimeout(() => {
+                checkCompletionOrAdvance();
+            }, 2000);
+        }
+
+        function handleTimeOut() {
+            clearTimeout(autoTimerStartTimeout);
+            document.getElementById('timerStatusNotice').classList.add('hidden');
+            pauseTimer();
+            SoundEngine.playTimeOut();
+
+            const q = activeQuestions[currentIndex];
+            if (!q.answered) {
+                q.answered = true;
+                q.isCorrect = false;
+                updateHeaderStats();
+                renderActiveQuestion();
+                renderGrid();
+
+                autoAdvanceTimeout = setTimeout(() => {
+                    checkCompletionOrAdvance();
+                }, 2000);
+            }
+        }
+
+        function checkCompletionOrAdvance() {
+            const completedCount = activeQuestions.filter(q => q.answered).length;
+            if (completedCount >= activeQuestions.length) {
+                finishAndSubmitAutomatically();
+            } else {
+                navigateQuestion(1);
+            }
+        }
+
+        function navigateQuestion(direction) {
+            clearTimeout(autoTimerStartTimeout);
+            clearTimeout(autoAdvanceTimeout);
+            SoundEngine.playClick();
+            let newIdx = currentIndex + direction;
+            if (newIdx < 0) newIdx = activeQuestions.length - 1;
+            if (newIdx >= activeQuestions.length) newIdx = 0;
+            openQuestion(newIdx);
+        }
+
+        // TEMPORIZADOR
+        function resetTimer() { pauseTimer(); timerSeconds = 10; updateTimerDisplay(); }
+        function toggleTimer() {
+            clearTimeout(autoTimerStartTimeout);
+            document.getElementById('timerStatusNotice').classList.add('hidden');
+            if (isTimerRunning) pauseTimer(); else startTimer();
+        }
+
+        function startTimer() {
+            if (isTimerRunning) return;
+            SoundEngine.playTimerStart();
+            isTimerRunning = true;
+            document.getElementById('lblStartTimer').innerText = "Pausar";
+            timerInterval = setInterval(() => {
+                timerSeconds -= 0.1;
+                if (Math.abs(timerSeconds - Math.round(timerSeconds)) < 0.05 && timerSeconds <= 3 && timerSeconds > 0) SoundEngine.playTick();
+                if (timerSeconds <= 0) { timerSeconds = 0; handleTimeOut(); }
+                updateTimerDisplay();
+            }, 100);
+        }
+
+        function pauseTimer() {
+            isTimerRunning = false;
+            clearInterval(timerInterval);
+            document.getElementById('lblStartTimer').innerText = "Iniciar";
+        }
+
+        function updateTimerDisplay() {
+            document.getElementById('timerText').innerText = `${Math.ceil(timerSeconds)}s`;
+            const bar = document.getElementById('timerProgressBar');
+            const pct = (timerSeconds / 10) * 100;
+            bar.style.width = `${pct}%`;
+            if (timerSeconds > 5) bar.className = "progress-bar-fill h-full bg-emerald-500 w-full";
+            else if (timerSeconds > 3) bar.className = "progress-bar-fill h-full bg-amber-500 w-full";
+            else bar.className = "progress-bar-fill h-full bg-rose-500 w-full";
+        }
+
+        function switchView(viewName) {
+            clearTimeout(autoTimerStartTimeout);
+            pauseTimer();
+            if (viewName === 'grid') {
+                document.getElementById('viewGrid').classList.remove('hidden');
+                document.getElementById('viewActiveQuestion').classList.add('hidden');
+            } else {
+                document.getElementById('viewGrid').classList.add('hidden');
+                document.getElementById('viewActiveQuestion').classList.remove('hidden');
+            }
+        }
+
+        // ENVÍO AUTOMÁTICO DE RESULTADOS A GOOGLE SHEETS
+        function finishAndSubmitAutomatically() {
+            clearTimeout(autoTimerStartTimeout);
+            clearTimeout(autoAdvanceTimeout);
+            pauseTimer();
+            switchView('grid');
+
+            const correct = activeQuestions.filter(q => q.answered && q.isCorrect).length;
+            const incorrect = activeQuestions.filter(q => q.answered && !q.isCorrect).length;
+            const accuracy = Math.round((correct / activeQuestions.length) * 100);
+            const score = correct * 10;
+
+            document.getElementById('modalStudentName').innerText = `Alumno: ${studentName}`;
+            document.getElementById('modalCorrect').innerText = correct;
+            document.getElementById('modalIncorrect').innerText = incorrect;
+            document.getElementById('modalAccuracy').innerText = `${accuracy}%`;
+
+            document.getElementById('finalModal').classList.remove('hidden');
+            if (typeof confetti === 'function') confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+
+            const statusDiv = document.getElementById('sheetsStatus');
+            statusDiv.className = "p-4 rounded-2xl border text-center text-sm font-bold bg-indigo-50 border-indigo-200 text-indigo-700";
+            statusDiv.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Guardando resultados automáticamente en Google Sheets...`;
+
+            const payload = {
+                nombre: studentName,
+                aciertos: correct,
+                fallos: incorrect,
+                puntuacion: score,
+                precision: accuracy
+            };
+
+            fetch(DEFAULT_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                statusDiv.className = "p-4 rounded-2xl border text-center text-sm font-bold bg-emerald-50 border-emerald-200 text-emerald-800";
+                statusDiv.innerHTML = `<i class="fa-solid fa-circle-check"></i> ¡Resultados guardados correctamente en Google Sheets!`;
+            })
+            .catch(() => {
+                statusDiv.className = "p-4 rounded-2xl border text-center text-sm font-bold bg-rose-50 border-rose-200 text-rose-800";
+                statusDiv.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Error al guardar en Google Sheets.`;
+            });
+        }
+    </script>
+</body>
+</html>
