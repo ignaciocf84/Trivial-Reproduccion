@@ -63,7 +63,7 @@
 </head>
 <body class="flex flex-col min-h-screen select-none antialiased">
 
-    <!-- PANTALLA INICIAL: BIENVENIDA Y REGISTRO -->
+    <!-- PANTALLA INICIAL: BIENVENIDA Y REGISTRO DEL ALUMNO -->
     <div id="viewWelcome" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
         <div class="glass-card max-w-lg w-full p-6 md:p-8 rounded-3xl border-2 border-indigo-200 shadow-2xl space-y-6">
             <div class="text-center space-y-3">
@@ -106,13 +106,13 @@
             <!-- RECUENTO GLOBAL DE ACIERTOS, FALLOS Y PUNTOS -->
             <div class="flex items-center gap-3 flex-wrap justify-center">
                 <div class="flex items-center gap-4 bg-white/90 px-5 py-2 rounded-2xl border border-slate-200 shadow-sm">
-                    <span class="text-emerald-600 font-black text-base md:text-lg flex items-center gap-1.5">
+                    <span class="text-emerald-600 font-black text-base md:text-lg flex items-center gap-1.5" title="Aciertos">
                         <i class="fa-solid fa-circle-check"></i> <span id="headerCorrect">0</span>
                     </span>
-                    <span class="text-rose-600 font-black text-base md:text-lg flex items-center gap-1.5">
+                    <span class="text-rose-600 font-black text-base md:text-lg flex items-center gap-1.5" title="Fallos">
                         <i class="fa-solid fa-circle-xmark"></i> <span id="headerIncorrect">0</span>
                     </span>
-                    <span class="text-indigo-950 font-black text-base md:text-lg border-l pl-4 border-slate-300">
+                    <span class="text-indigo-950 font-black text-base md:text-lg border-l pl-4 border-slate-300" title="Puntuación Total">
                         Pts: <span id="headerScore">0</span>
                     </span>
                 </div>
@@ -165,7 +165,7 @@
                     <h2 id="activeQuestionText" class="text-2xl md:text-3xl lg:text-4xl font-extrabold leading-snug text-center"></h2>
                 </div>
 
-                <!-- OPCIONES A Y B -->
+                <!-- OPCIONES A Y B DESORDENADAS -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6" id="optionsContainer"></div>
 
                 <!-- CONTROLES DEL TEMPORIZADOR DE 10 SEGUNDOS CON INICIO RETARDADO EN 3s -->
@@ -191,7 +191,7 @@
                         </div>
                     </div>
 
-                    <!-- BARRA DE PROGRESO -->
+                    <!-- BARRA DE PROGRESO DE TIEMPO -->
                     <div class="w-full bg-slate-200 h-4 rounded-full overflow-hidden">
                         <div id="timerProgressBar" class="progress-bar-fill h-full bg-emerald-500 w-full"></div>
                     </div>
@@ -199,7 +199,7 @@
 
                 <!-- PANEL DE EXPLICACIÓN Y AVISO DE AVANCE AUTOMÁTICO -->
                 <div id="explanationPanel" class="hidden p-6 rounded-2xl border-2 space-y-3">
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
                         <div class="flex items-center gap-2 text-xl font-extrabold text-indigo-950">
                             <i class="fa-solid fa-lightbulb text-amber-500"></i> Explicación Didáctica
                         </div>
@@ -210,7 +210,7 @@
                     <p id="explanationText" class="text-lg md:text-xl font-bold leading-relaxed text-slate-800"></p>
                 </div>
 
-                <!-- NAVEGACIÓN MANUAL -->
+                <!-- NAVEGACIÓN MANUAL ENTRE PREGUNTAS -->
                 <div class="flex items-center justify-between pt-4 border-t border-slate-200">
                     <button onclick="navigateQuestion(-1)" class="btn-touch px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-base flex items-center gap-2">
                         <i class="fa-solid fa-chevron-left"></i> Anterior
@@ -266,11 +266,8 @@
 
     <!-- SCRIPT DE LÓGICA Y AUDIO SINTETIZADO -->
     <script>
-        // URL provista (sanitizada automáticamente si incluye la ruta del dominio corporativo)
-        const RAW_SCRIPT_URL = "https://script.google.com/a/macros/cevsanjuandediosgoletaesur.es/s/AKfycbxg8tHNt26P4Wm-7UxF7s3noLadcnghPJEA2JSDRnSZXrIK8gd6AQO7R3AXKnbyp6NG/exec";
-        
-        // Conversión automática a la URL pública universal (sin /a/macros/dominio/)
-        const DEFAULT_SCRIPT_URL = RAW_SCRIPT_URL.replace(/\/a\/macros\/[^\/]+\//, '/');
+        // URL limpia apuntando directamente al ejecutable público de Google Apps Script
+        const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxg8tHNt26P4Wm-7UxF7s3noLadcnghPJEA2JSDRnSZXrIK8gd6AQO7R3AXKnbyp6NG/exec";
 
         const QUESTION_BANK = [
             { id: 1, category: "Etapas y Reproducción", question: "¿En qué consiste la función de reproducción?", options: [{ text: "En tener descendientes que se parecen a sus progenitores para conseguir la perpetuación de la especie.", correct: true }, { text: "En tener descendientes idénticos a sus progenitores para conseguir la perpetuación de la especie.", correct: false }], explanation: "La reproducción en los seres humanos permite obtener descendientes semejantes (que se parecen, pero no son idénticos) para perpetuar la especie." },
@@ -303,7 +300,10 @@
         // SINTETIZADOR WEB AUDIO API
         const SoundEngine = {
             ctx: null,
-            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); if (this.ctx.state === 'suspended') this.ctx.resume(); },
+            init() { 
+                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); 
+                if (this.ctx.state === 'suspended') this.ctx.resume(); 
+            },
             playClick() { this.init(); const osc = this.ctx.createOscillator(), gain = this.ctx.createGain(); osc.type = 'sine'; osc.frequency.setValueAtTime(600, this.ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(250, this.ctx.currentTime + 0.05); gain.gain.setValueAtTime(0.2, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.05); osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.05); },
             playTimerStart() { this.init(); const osc = this.ctx.createOscillator(), gain = this.ctx.createGain(); osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(659.25, this.ctx.currentTime + 0.15); gain.gain.setValueAtTime(0.25, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2); osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.2); },
             playTick() { this.init(); const osc = this.ctx.createOscillator(), gain = this.ctx.createGain(); osc.type = 'sine'; osc.frequency.setValueAtTime(800, this.ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(400, this.ctx.currentTime + 0.04); gain.gain.setValueAtTime(0.3, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.04); osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.04); },
@@ -322,6 +322,7 @@
         let autoAdvanceTimeout = null;
         let timerSeconds = 10;
         let isTimerRunning = false;
+        let hasFinishedGame = false;
 
         const categoryStyles = {
             "Etapas y Reproducción": "bg-purple-100 text-purple-900 border-purple-300",
@@ -356,6 +357,8 @@
             clearTimeout(autoTimerStartTimeout);
             clearTimeout(autoAdvanceTimeout);
             pauseTimer();
+            hasFinishedGame = false;
+            document.getElementById('finalModal').classList.add('hidden');
 
             // Seleccionar 20 preguntas aleatorias de 25
             const shuffledPool = fisherYatesShuffle(QUESTION_BANK).slice(0, 20);
@@ -417,8 +420,15 @@
         }
 
         function openQuestion(idx) {
+            if (hasFinishedGame) return;
             clearTimeout(autoTimerStartTimeout);
             clearTimeout(autoAdvanceTimeout);
+
+            if (activeQuestions.length > 0 && activeQuestions.every(q => q.answered)) {
+                finishAndSubmitAutomatically();
+                return;
+            }
+
             SoundEngine.playClick();
             currentIndex = idx;
             resetTimer();
@@ -484,7 +494,7 @@
             pauseTimer();
 
             const q = activeQuestions[currentIndex];
-            if (q.answered) return;
+            if (q.answered || hasFinishedGame) return;
 
             q.answered = true;
             q.isCorrect = isCorrect;
@@ -496,10 +506,16 @@
             renderActiveQuestion();
             renderGrid();
 
-            // AVANCE AUTOMÁTICO TRAS 2 SEGUNDOS
-            autoAdvanceTimeout = setTimeout(() => {
-                checkCompletionOrAdvance();
-            }, 2000);
+            const allAnswered = activeQuestions.every(q => q.answered);
+            if (allAnswered) {
+                autoAdvanceTimeout = setTimeout(() => {
+                    finishAndSubmitAutomatically();
+                }, 2000);
+            } else {
+                autoAdvanceTimeout = setTimeout(() => {
+                    checkCompletionOrAdvance();
+                }, 2000);
+            }
         }
 
         function handleTimeOut() {
@@ -509,25 +525,32 @@
             SoundEngine.playTimeOut();
 
             const q = activeQuestions[currentIndex];
-            if (!q.answered) {
+            if (!q.answered && !hasFinishedGame) {
                 q.answered = true;
                 q.isCorrect = false;
                 updateHeaderStats();
                 renderActiveQuestion();
                 renderGrid();
 
-                autoAdvanceTimeout = setTimeout(() => {
-                    checkCompletionOrAdvance();
-                }, 2000);
+                const allAnswered = activeQuestions.every(q => q.answered);
+                if (allAnswered) {
+                    autoAdvanceTimeout = setTimeout(() => {
+                        finishAndSubmitAutomatically();
+                    }, 2000);
+                } else {
+                    autoAdvanceTimeout = setTimeout(() => {
+                        checkCompletionOrAdvance();
+                    }, 2000);
+                }
             }
         }
 
         function checkCompletionOrAdvance() {
+            if (hasFinishedGame) return;
             const unanswered = activeQuestions.filter(q => !q.answered);
             if (unanswered.length === 0) {
                 finishAndSubmitAutomatically();
             } else {
-                // Buscar la siguiente pregunta sin responder partiendo del índice actual
                 let nextIdx = activeQuestions.findIndex((q, i) => i > currentIndex && !q.answered);
                 if (nextIdx === -1) {
                     nextIdx = activeQuestions.findIndex(q => !q.answered);
@@ -541,8 +564,15 @@
         }
 
         function navigateQuestion(direction) {
+            if (hasFinishedGame) return;
             clearTimeout(autoTimerStartTimeout);
             clearTimeout(autoAdvanceTimeout);
+
+            if (activeQuestions.length > 0 && activeQuestions.every(q => q.answered)) {
+                finishAndSubmitAutomatically();
+                return;
+            }
+
             SoundEngine.playClick();
             let newIdx = currentIndex + direction;
             if (newIdx < 0) newIdx = activeQuestions.length - 1;
@@ -590,6 +620,12 @@
         function switchView(viewName) {
             clearTimeout(autoTimerStartTimeout);
             pauseTimer();
+
+            if (activeQuestions.length > 0 && activeQuestions.every(q => q.answered) && !hasFinishedGame) {
+                finishAndSubmitAutomatically();
+                return;
+            }
+
             if (viewName === 'grid') {
                 document.getElementById('viewGrid').classList.remove('hidden');
                 document.getElementById('viewActiveQuestion').classList.add('hidden');
@@ -601,10 +637,15 @@
 
         // ENVÍO AUTOMÁTICO DE RESULTADOS A GOOGLE SHEETS Y PANTALLA FINAL
         function finishAndSubmitAutomatically() {
+            if (hasFinishedGame) return;
+            hasFinishedGame = true;
+
             clearTimeout(autoTimerStartTimeout);
             clearTimeout(autoAdvanceTimeout);
             pauseTimer();
-            switchView('grid');
+            
+            document.getElementById('viewGrid').classList.remove('hidden');
+            document.getElementById('viewActiveQuestion').classList.add('hidden');
 
             SoundEngine.playVictory();
 
